@@ -1,28 +1,31 @@
-name: .net build & test
+name: publish docker image
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-  workflow_call:
+  release:
+    types: [created]
+env:
+  IMAGE_NAME: lab3
 
 jobs:
-  build:
-
+  call_workflow_build_and_test:
+    uses: ./.github/workflows/dotnet-build-and-test.yml
+  push_to_registry:
+    name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 8.0.x
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build TestServer
-      run: dotnet build --no-restore TestServer
-    - name: Build TestServerTests
-      run: dotnet build --no-restore TestServerTests
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./TestServer
+          file: ./TestServer/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }},${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
