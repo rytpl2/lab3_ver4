@@ -19,7 +19,9 @@ services:
       - /var/lib/postgresql/data
     container_name: db
   app:
-    image: rytpl/lab2_ver1:latest
+    build:
+      context: ./TestServer
+      dockerfile: Dockerfile
     depends_on:
       db:
         condition: service_healthy
